@@ -1,0 +1,7 @@
+apiVersion: peak.peak-oss.net/v1alpha1
+kind: PeakService
+metadata:
+  name: example-peakservice
+spec:
+  # Add fields here
+  size: 3
