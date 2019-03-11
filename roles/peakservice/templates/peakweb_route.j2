@@ -1,0 +1,16 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: peakweb
+  namespace: "{{ peakweb_namespace }}"
+  labels:
+    app: peak
+spec:
+  to:
+    kind: Service
+    name: peakweb
+{% if peakweb_ssl|d(False)|bool %}
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+{% endif %}

@@ -1,5 +1,5 @@
 ---
 - version: v1alpha1
-  group: peak.peak-oss.net
+  group: services.peak-oss.net
   kind: PeakService
   role: /opt/ansible/roles/peakservice

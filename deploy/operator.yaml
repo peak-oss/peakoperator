@@ -15,9 +15,8 @@ spec:
       serviceAccountName: peak-operator
       containers:
         - name: peak-operator
-          # Replace this with the built image name
-          image: "{{ REPLACE_IMAGE }}"
-          imagePullPolicy: "{{ pull_policy|default('Always') }}"
+          image: "quay.io/peak/peak-operator:v0.0.5"
+          imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

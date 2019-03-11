@@ -1,0 +1,87 @@
+---
+# tasks file for peakorc
+- name: "Set peakorc Service to {{ peakorc_state }}"
+  k8s:
+    state: "{{ peakorc_state }}"
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: peakorc
+        namespace: "{{ peakorc_namespace }}"
+        labels:
+          app: peak
+      spec:
+        selector:
+          peak: orc
+        ports:
+        - name: peakorc
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+        sessionAffinity: None
+        type: ClusterIP
+
+- name: "Set peakorc pod to {{ peakorc_state }}"
+  k8s:
+    state: "{{ peakorc_state }}"
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: peakorc
+        namespace: "{{ peakorc_namespace }}"
+        labels:
+          app: peak
+          peak: orc
+      spec:
+        containers:
+        - env:
+          - name: PEAKDB_HOST
+            value: postgresql
+          - name: INFLUX_URL
+            value: http://influxdb:8086
+          - name: PEAKDB_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: postgresql
+          - name: PEAKDB_PASS
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: postgresql
+          - name: PEAKTEST_IMG
+            value: "{{ peaktest_image }}:{{peaktest_image_tag }}"
+          image: "{{ peakorc_image }}:{{ peakorc_image_tag }}"
+          imagePullPolicy: IfNotPresent
+          name: peakorc
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources:
+            request:
+              cpu: "{{ peakorc_cpu_request }}"
+              memory: "{{ peakorc_memory_request}}"
+            limits:
+              cpu: "{{ peakorc_cpu_limit}}"
+              memory: "{{ peakorc_memory_limit }}"
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+
+- name: Verify that the peakorc pod is running
+  when:
+    - peakorc_state == "present"
+    - peakorc_wait_for_init|bool
+  k8s:
+    api_version: v1
+    kind: Pod
+    name: peakorc
+    namespace: "{{ peakorc_namespace }}"
+  register: peakorc_pod
+  until:
+  - peakorc_pod.result.status.containerStatuses[0].ready|d(False)|bool
+  retries: 25
+  delay: 5
+  changed_when: false

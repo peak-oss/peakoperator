@@ -1,0 +1,138 @@
+---
+- name: "Set Postgresql Secret to {{ postgresql_state }}"
+  k8s:
+    state: "{{postgresql_state}}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        labels:
+          app: peak
+        name: "{{postgresql_name}}"
+        namespace: "{{postgresql_namespace}}"
+      stringData:
+        database-name: "{{postgresql_database_name}}"
+        database-user: "{{postgresql_user}}"
+        database-password: "{{postgresql_db_secret}}"
+
+- name: "Set Postgresql Service to {{ postgresql_state }}"
+  k8s:
+    state: "{{postgresql_state}}"
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{postgresql_name}}"
+        namespace: "{{postgresql_namespace}}"
+        labels:
+          app: peak
+      spec:
+        ports:
+        - name: postgresql
+          port: 5432
+          protocol: TCP
+          targetPort: 5432
+        selector:
+          peak: postgresql
+        sessionAffinity: None
+        type: ClusterIP
+
+- name: "Set Postgresql PersistentVolumeClaim to {{ postgresql_state }}"
+  k8s:
+    state: "{{ postgresql_state }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ postgresql_name }}-pvc"
+        namespace: "{{ postgresql_namespace }}"
+        labels:
+          app: peak
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "{{ postgresql_volume_size }}"
+
+- name: "Set Postgresql Pod to {{ postgresql_state }}"
+  k8s:
+    state: "{{ postgresql_state }}"
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: "{{ postgresql_name }}"
+        namespace: "{{ postgresql_namespace }}"
+        labels:
+          app: peak
+          peak: postgresql
+      spec:
+        containers:
+        - env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: "{{ postgresql_name }}"
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: "{{ postgresql_name }}"
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                key: database-name
+                name: "{{ postgresql_name }}"
+          image: "{{ postgresql_image }}:{{ postgresql_image_tag }}"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+              - --live
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
+          name: postgresql
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: "{{ postgresql_cpu_request }}"
+              memory: "{{ postgresql_memory_request }}"
+            limits:
+              cpu: "{{ postgresql_cpu_limit }}"
+              memory: "{{ postgresql_memory_limit }}"
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: postgresql-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        volumes:
+        - name: postgresql-data
+          persistentVolumeClaim:
+            claimName: "{{ postgresql_name }}-pvc"
+
+- name: Verify that the Postgresql Pod is running
+  when:
+    - postgresql_state == "present"
+    - postgresql_wait_for_init|bool
+  k8s:
+    api_version: v1
+    kind: Pod
+    name: "{{ postgresql_name }}"
+    namespace: "{{ postgresql_namespace }}"
+  register: postgresql_pod
+  until:
+  - postgresql_pod.result.status.containerStatuses[0].ready|d(False)|bool
+  retries: 25
+  delay: 5
+  changed_when: false

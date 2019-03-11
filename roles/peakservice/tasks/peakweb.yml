@@ -1,0 +1,118 @@
+---
+- name: "Set flask CSRF Secret to {{ peakweb_state }}"
+  k8s:
+    state: "{{peakweb_state}}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        labels:
+          app: peak
+        name: peakweb
+        namespace: "{{peakweb_namespace}}"
+      stringData:
+        flask-secret: "{{ flask_secret}}"
+
+# tasks file for Peakweb
+- name: "Set peakweb service to {{ peakweb_state }}"
+  k8s:
+    state: "{{ peakweb_state }}"
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: peakweb
+        namespace: "{{ peakweb_namespace }}"
+        labels:
+          app: peak
+      spec:
+        selector:
+          peak: web
+        ports:
+        - name: peakweb
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+        sessionAffinity: None
+        type: ClusterIP
+
+- name: "Set Peakweb Route to {{ peakweb_state }}"
+  k8s:
+    state: "{{ peakweb_state }}"
+    definition: "{{ lookup('template', './templates/peakweb_route.j2') | from_yaml }}"
+  register: peakweb_route_result
+
+- name: Store Peakweb Route Hostname
+  set_fact:
+    peakweb_route: "{{ peakweb_route_result.result.spec.host }}"
+  when: peakweb_route_result.method == "create" or peakweb_route_result.method == "patch"
+
+- name: Set Peakweb Pod to {{ _peak_state }}
+  k8s:
+    state: "{{ peakweb_state }}"
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: peakweb
+        namespace: "{{ peakweb_namespace }}"
+        labels:
+          app: peak
+          peak: web
+      spec:
+        containers:
+        - env:
+          - name: PEAKORC
+            value: http://peakorc:8080
+          - name: FLASK_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: flask-secret
+                name: peakweb
+          image: "{{ peakweb_image }}:{{ peakweb_image_tag }}"
+          imagePullPolicy: IfNotPresent
+          name: peakweb
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 15
+            timeoutSeconds: 2
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - echo OK
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            request:
+              cpu: "{{ peakweb_cpu_request }}"
+              memory: "{{ peakweb_memory_request}}"
+            limits:
+              cpu: "{{ peakweb_cpu_limit}}"
+              memory: "{{ peakweb_memory_limit }}"
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+
+- name: Verify that the Peakweb Pod is running
+  when:
+    - peakweb_state == "present"
+    - peakweb_wait_for_init|bool
+  k8s:
+    api_version: v1
+    kind: Pod
+    name: peakweb
+    namespace: "{{ peakweb_namespace }}"
+  register: peakweb_pod
+  until:
+  - peakweb_pod.result.status.containerStatuses[0].ready|d(False)|bool
+  retries: 25
+  delay: 5
+  changed_when: false

@@ -1,0 +1,124 @@
+---
+- name: "Set Grafana Service to {{ grafana_state }}"
+  k8s:
+    state: "{{ grafana_state }}"
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: grafana
+        namespace: "{{ grafana_namespace }}"
+        labels:
+          app: metrics
+      spec:
+        selector:
+          peak: grafana
+        ports:
+        - name: grafana
+          port: 3000
+          protocol: TCP
+          targetPort: 3000
+        sessionAffinity: None
+        type: ClusterIP
+
+- name: "Set Grafana Route to {{ _peak_state }}"
+  k8s:
+    state: "{{ grafana_state }}"
+    definition: "{{ lookup('template', './templates/grafana_route.j2') | from_yaml }}"
+  register: grafana_route_result
+
+- name: Store Grafana Route Hostname
+  set_fact:
+    grafana_route: "{{ grafana_route_result.result.spec.host }}"
+  when: grafana_route_result.method == "create" or grafana_route_result.method == "patch"
+
+- name: "Set Grafana PersistentVolumeClaim to {{ grafana_state }}"
+  k8s:
+    state: "{{ grafana_state }}"
+    definition:
+      kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: grafana-lib-pvc
+        namespace: "{{ grafana_namespace }}"
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: "{{ grafana_volume_size }}"
+
+- name: "Set Grafana Pod to {{ grafana_state }}"
+  k8s:
+    state: "{{ grafana_state }}"
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: grafana
+        namespace: "{{ grafana_namespace }}"
+        labels:
+          app: metrics
+          peak: grafana
+      spec:
+        containers:
+        - image: "{{ grafana_image }}:{{ grafana_image_tag }}"
+          imagePullPolicy: IfNotPresent
+          name: grafana
+          ports:
+          - containerPort: 3000
+            protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
+            initialDelaySeconds: 3
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            request:
+              cpu: "{{ grafana_cpu_request }}"
+              memory: "{{ grafana_memory_request}}"
+            limits:
+              cpu: "{{ grafana_cpu_limit}}"
+              memory: "{{ grafana_memory_limit }}"
+          volumeMounts:
+          - name: grafana-lib-volume
+            mountPath: /var/lib/grafana
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: grafana-lib-volume
+          persistentVolumeClaim:
+            claimName: grafana-lib-pvc
+            readOnly: false
+
+- name: Verify that the Grafana Pod is running
+  when:
+    - grafana_state == "present"
+    - grafana_wait_for_init|bool
+  k8s:
+    api_version: v1
+    kind: Pod
+    name: grafana
+    namespace: "{{ grafana_namespace }}"
+  register: grafana_pod
+  until:
+  - grafana_pod.result.status.containerStatuses[0].ready|d(False)|bool
+  retries: 25
+  delay: 5
+  changed_when: false

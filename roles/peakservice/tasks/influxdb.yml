@@ -1,0 +1,79 @@
+---
+# tasks file for infuxdb
+- name: "Set InfluxDB Service to {{ influx_state }}"
+  k8s:
+    state: "{{ influx_state }}"
+    definition:
+      kind: Service
+      apiVersion: v1
+      metadata:
+        name: influxdb
+        namespace: "{{ influx_namespace }}"
+        labels:
+          app: metrics
+      spec:
+        selector:
+          peak: influxdb
+        ports:
+        - name: influxdb
+          port: 8086
+          protocol: TCP
+          targetPort: 8086
+        sessionAffinity: None
+        type: ClusterIP
+
+- name: "Set influxdb Pod to {{ influx_state }}"
+  k8s:
+    state: "{{ influx_state }}"
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: influxdb
+        namespace: "{{ influx_namespace }}"
+        labels:
+          app: metrics
+          peak: influxdb
+      spec:
+        containers:
+        - image: "{{ influx_image }}:{{ influx_image_tag }}"
+          imagePullPolicy: IfNotPresent
+          name: influxdb
+          ports:
+          - containerPort: 8086
+            protocol: TCP
+          resources:
+            request:
+              cpu: "{{ influx_cpu_request }}"
+              memory: "{{ influx_memory_request}}"
+            limits:
+              cpu: "{{ influx_cpu_limit}}"
+              memory: "{{ influx_memory_limit }}"
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/influxdb
+              name: influxdb-1
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+          - emptyDir: {}
+            name: influxdb-1
+
+- name: "Verify that the influxdb Pod is running"
+  when:
+    - influx_state == "present"
+    - influx_wait_for_init|bool
+  k8s:
+    api_version: v1
+    kind: Pod
+    name: influxdb
+    namespace: "{{ influx_namespace }}"
+  register: influx_pod
+  until:
+  - influx_pod.result.status.containerStatuses[0].ready|d(False)|bool
+  retries: 25
+  delay: 5
+  changed_when: false

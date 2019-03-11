@@ -1,2 +1,78 @@
 ---
-# defaults file for peakservice
+# defaults for postgresql
+postgresql_state: present
+postgresql_namespace: "{{ meta.namespace }}"
+postgresql_name: postgresql
+
+postgresql_database_name: peakdb
+postgresql_user: postgresql
+postgresql_password: postgresql
+postgresql_volume_size: 1Gi
+postgresql_memory_request: 512Mi
+postgresql_memory_limit: 512Mi
+postgresql_cpu_request: 200m
+postgresql_cpu_limit: 500m
+
+postgresql_wait_for_init: true
+postgresql_image: registry.redhat.io/rhscl/postgresql-96-rhel7
+postgresql_image_tag: latest
+
+peaktest_image: docker.io/peakapi/peaktest
+peaktest_image_tag: latest
+
+# defaults for peakorc
+peakorc_state: present
+peakorc_namespace: "{{ meta.namespace }}"
+
+peakorc_postgresql_database_name: peakdb
+peakorc_postgresql_service_name: postgresql
+peakorc_postgresql_user: postgresql
+peakorc_postgresql_password: postgresql
+peakorc_memory_request: 512Mi
+peakorc_memory_limit: 512Mi
+peakorc_cpu_request: 200m
+peakorc_cpu_limit: 500m
+peakorc_wait_for_init: true
+peakorc_image: quay.io/peak/peakorc
+peakorc_image_tag: latest
+
+# defaults for peakweb
+peakweb_state: present
+peakweb_namespace: "{{meta.namespace}}"
+
+peakweb_ssl: False
+peakweb_memory_request: 512Mi
+peakweb_memory_limit: 512Mi
+peakweb_cpu_request: 200m
+peakweb_cpu_limit: 500m
+peakweb_wait_for_init: true
+
+peakweb_image: quay.io/peak/peakweb
+peakweb_image_tag: latest
+
+# defaults for influxdb
+influx_state: present
+influx_namespace: "{{meta.namespace}}"
+influx_name: influxdb
+
+influx_memory_request: 512Mi
+influx_memory_limit: 512Mi
+influx_cpu_request: 200m
+influx_cpu_limit: 500m
+influx_wait_for_init: true
+influx_image: docker.io/library/influxdb
+influx_image_tag: latest
+
+# defaults file for grafana
+grafana_state: present
+grafana_namespace: "{{ meta.namespace }}"
+
+grafana_ssl: false
+grafana_volume_size: 1Gi
+grafana_memory_request: 512Mi
+grafana_memory_limit: 512Mi
+grafana_cpu_request: 200m
+grafana_cpu_limit: 500m
+grafana_wait_for_init: true
+grafana_image: docker.io/wkulhanek/grafana
+grafana_image_tag: latest

@@ -1,2 +1,7 @@
 ---
 # tasks file for peakservice
+- import_tasks: postgresql.yml
+- import_tasks: peakorc.yml
+- import_tasks: peakweb.yml
+- import_tasks: influxdb.yml
+- import_tasks: grafana.yml
