@@ -1,0 +1,4 @@
+apiVersion: services.peak-oss.net/v1alpha2
+kind: PeakService
+metadata:
+  name: example-peakservice
