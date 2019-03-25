@@ -1,4 +1,13 @@
 ---
+
+- name: "Check if the postresql secret has been created"
+  k8s_facts:
+    api_version: v1
+    kind: Secret
+    name: "{{ postgresql_name }}"
+    namespace: "{{ postgresql_namespace }}"
+  register: psql_secret
+
 - name: "Set Postgresql Secret to {{ postgresql_state }}"
   k8s:
     state: "{{postgresql_state}}"
@@ -14,6 +23,7 @@
         database-name: "{{postgresql_database_name}}"
         database-user: "{{postgresql_user}}"
         database-password: "{{postgresql_db_secret}}"
+  when: psql_secret.resources|length == 0
 
 - name: "Set Postgresql Service to {{ postgresql_state }}"
   k8s:
