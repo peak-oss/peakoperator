@@ -36,7 +36,10 @@
           peak: influxdb
       spec:
         containers:
-        - image: "{{ influx_image }}:{{ influx_image_tag }}"
+        - env:
+          - name: INFLUXDB_DB
+            value: peakdb
+          image: "{{ influx_image }}:{{ influx_image_tag }}"
           imagePullPolicy: IfNotPresent
           name: influxdb
           ports:
@@ -61,19 +64,3 @@
         volumes:
           - emptyDir: {}
             name: influxdb-1
-
-- name: "Verify that the influxdb Pod is running"
-  when:
-    - influx_state == "present"
-    - influx_wait_for_init|bool
-  k8s:
-    api_version: v1
-    kind: Pod
-    name: influxdb
-    namespace: "{{ influx_namespace }}"
-  register: influx_pod
-  until:
-  - influx_pod.result.status.containerStatuses[0].ready|d(False)|bool
-  retries: 25
-  delay: 5
-  changed_when: false
