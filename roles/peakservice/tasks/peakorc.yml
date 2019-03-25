@@ -35,6 +35,8 @@
           app: peak
           peak: orc
       spec:
+        serviceAccount: peak
+        serviceAccountName: peak
         containers:
         - env:
           - name: PEAKDB_HOST
@@ -51,6 +53,10 @@
               secretKeyRef:
                 key: database-password
                 name: postgresql
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
           - name: PEAKTEST_IMG
             value: "{{ peaktest_image }}:{{peaktest_image_tag }}"
           image: "{{ peakorc_image }}:{{ peakorc_image_tag }}"
@@ -69,19 +75,3 @@
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
-
-- name: Verify that the peakorc pod is running
-  when:
-    - peakorc_state == "present"
-    - peakorc_wait_for_init|bool
-  k8s:
-    api_version: v1
-    kind: Pod
-    name: peakorc
-    namespace: "{{ peakorc_namespace }}"
-  register: peakorc_pod
-  until:
-  - peakorc_pod.result.status.containerStatuses[0].ready|d(False)|bool
-  retries: 25
-  delay: 5
-  changed_when: false
