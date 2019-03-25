@@ -106,19 +106,3 @@
           persistentVolumeClaim:
             claimName: grafana-lib-pvc
             readOnly: false
-
-- name: Verify that the Grafana Pod is running
-  when:
-    - grafana_state == "present"
-    - grafana_wait_for_init|bool
-  k8s:
-    api_version: v1
-    kind: Pod
-    name: grafana
-    namespace: "{{ grafana_namespace }}"
-  register: grafana_pod
-  until:
-  - grafana_pod.result.status.containerStatuses[0].ready|d(False)|bool
-  retries: 25
-  delay: 5
-  changed_when: false

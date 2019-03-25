@@ -47,7 +47,7 @@
     peakweb_route: "{{ peakweb_route_result.result.spec.host }}"
   when: peakweb_route_result.method == "create" or peakweb_route_result.method == "patch"
 
-- name: Set Peakweb Pod to {{ _peak_state }}
+- name: "Set Peakweb Pod to {{ peakweb_state }}"
   k8s:
     state: "{{ peakweb_state }}"
     definition:
@@ -100,19 +100,3 @@
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
-
-- name: Verify that the Peakweb Pod is running
-  when:
-    - peakweb_state == "present"
-    - peakweb_wait_for_init|bool
-  k8s:
-    api_version: v1
-    kind: Pod
-    name: peakweb
-    namespace: "{{ peakweb_namespace }}"
-  register: peakweb_pod
-  until:
-  - peakweb_pod.result.status.containerStatuses[0].ready|d(False)|bool
-  retries: 25
-  delay: 5
-  changed_when: false
