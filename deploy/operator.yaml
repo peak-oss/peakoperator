@@ -19,14 +19,14 @@ spec:
           - /usr/local/bin/ao-logs
           - /tmp/ansible-operator/runner
           - stdout
-          image: "quay.io/peak/peak-operator:v0.0.8"
+          image: "quay.io/peak/peak-operator:v0.1.7"
           imagePullPolicy: Always
           volumeMounts:
           - mountPath: /tmp/ansible-operator/runner
             name: runner
             readOnly: true
         - name: operator
-          image: "quay.io/peak/peak-operator:v0.0.8"
+          image: "quay.io/peak/peak-operator:v0.1.7"
           imagePullPolicy: Always
           volumeMounts:
           - mountPath: /tmp/ansible-operator/runner
