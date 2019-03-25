@@ -6,8 +6,8 @@
 
 The operator image is built using the [operator-sdk](https://github.com/operator-framework/operator-sdk). You will require Docker installed on your host machine.
 ```
-operator-sdk build  quay.io/peak/peak-operator:v0.0.5
-docker push quay.io/peak/peak-operator:v0.0.5
+operator-sdk build  quay.io/peak/peak-operator:v0.1.7
+docker push quay.io/peak/peak-operator:v0.1.7
 ```
 
 ## Deploying the operator and CRD on OpenShift
@@ -37,10 +37,10 @@ rules:
   - patch' | oc create -f -
 ```
 
-Login again as a regular user, create a new project, and create the operator
+Login again as a regular user, create a new project, and create the resources required for the operator:
 ```
 oc login -u user1 master.openshift.example.com
-oc create -f deploy/operator.yml
+oc apply -f deploy
 ```
 Observe the operator pod deploying, and verify that it has started successfully
 ```
@@ -63,7 +63,7 @@ $ oc logs -f peak-operator-66786764db-q5j4r
 ```
 Create the example PeakService resource
 ```
-oc create -f crds/peak_v1alpha1_peakservice_cr.yaml
+oc create -f deploy/crds/services_v1alpha2_peakservice_cr.yaml
 ```
 Verify that the Peak pods begin to deploy. You can follow the operator logs to verify there are no errors during deployment:
 ```
@@ -77,9 +77,9 @@ peakweb                          1/1       Running   0          51s
 postgresql                       1/1       Running   0          1m
 
 $ oc logs -f peak-operator-66786764db-q5j4r
-{"level":"info","ts":1552280107.1600294,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha1, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set flask CSRF Secret to present"}
-{"level":"info","ts":1552280107.9999423,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha1, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set peakweb service to present"}
-{"level":"info","ts":1552280108.846557,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha1, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set Peakweb Route to present"}
-{"level":"info","ts":1552280109.7446883,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha1, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set Peakweb Pod to {{ _peak_state }}"}
-{"level":"info","ts":1552280110.5215309,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha1, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Verify that the Peakweb Pod is running"}
+{"level":"info","ts":1552280107.1600294,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha2, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set flask CSRF Secret to present"}
+{"level":"info","ts":1552280107.9999423,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha2, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set peakweb service to present"}
+{"level":"info","ts":1552280108.846557,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha2, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set Peakweb Route to present"}
+{"level":"info","ts":1552280109.7446883,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha2, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Set Peakweb Pod to {{ _peak_state }}"}
+{"level":"info","ts":1552280110.5215309,"logger":"logging_event_handler","msg":"[playbook task]","name":"example-peakservice","namespace":"peak1","gvk":"services.peak-oss.net/v1alpha2, Kind=PeakService","event_type":"playbook_on_task_start","job":"3311915848972585513","EventData.Name":"peakservice : Verify that the Peakweb Pod is running"}
 ```
