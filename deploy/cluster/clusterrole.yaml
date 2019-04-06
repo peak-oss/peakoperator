@@ -1,0 +1,20 @@
+---
+apiVersion: authorization.openshift.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+  name: peak-admin-rules
+rules:
+- apiGroups:
+  - services.peak-oss.net
+  resources:
+  - '*'
+  verbs:
+  - create
+  - update
+  - delete
+  - get
+  - list
+  - watch
+  - patch
