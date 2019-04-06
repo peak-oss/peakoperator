@@ -17,8 +17,8 @@ postgresql_wait_for_init: true
 postgresql_image: registry.redhat.io/rhscl/postgresql-96-rhel7
 postgresql_image_tag: latest
 
-peaktest_image: docker.io/peakapi/peaktest
-peaktest_image_tag: latest
+peaktest_image: quay.io/peak/peaktest
+peaktest_image_tag: 0.5.0
 
 # defaults for peakorc
 peakorc_state: present
@@ -34,7 +34,7 @@ peakorc_cpu_request: 200m
 peakorc_cpu_limit: 500m
 peakorc_wait_for_init: true
 peakorc_image: quay.io/peak/peakorc
-peakorc_image_tag: latest
+peakorc_image_tag: 0.5.0
 
 # defaults for peakweb
 peakweb_state: present
@@ -48,7 +48,7 @@ peakweb_cpu_limit: 500m
 peakweb_wait_for_init: true
 
 peakweb_image: quay.io/peak/peakweb
-peakweb_image_tag: latest
+peakweb_image_tag: 0.5.0
 
 # defaults for influxdb
 influx_state: present
@@ -61,7 +61,7 @@ influx_cpu_request: 200m
 influx_cpu_limit: 500m
 influx_wait_for_init: true
 influx_image: docker.io/library/influxdb
-influx_image_tag: latest
+influx_image_tag: 1.7.5
 
 # defaults file for grafana
 grafana_state: present
@@ -75,4 +75,4 @@ grafana_cpu_request: 200m
 grafana_cpu_limit: 500m
 grafana_wait_for_init: true
 grafana_image: docker.io/wkulhanek/grafana
-grafana_image_tag: latest
+grafana_image_tag: 5.4.3
