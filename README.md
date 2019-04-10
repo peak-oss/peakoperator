@@ -14,32 +14,14 @@ docker push quay.io/peak/peak-operator:v0.1.7
 
 As the `system:admin` user, create the CRD and a cluster-role allowing users to query the peak-services API
 ```
-oc create -f deploy/crds/peak_v1alpha1_peakservice_crd.yaml
-echo '---
-apiVersion: authorization.openshift.io/v1
-kind: ClusterRole
-metadata:
-  labels:
-    rbac.authorization.k8s.io/aggregate-to-admin: "true"
-  name: peak-admin-rules
-rules:
-- apiGroups:
-  - services.peak-oss.net
-  resources:
-  - '*'
-  verbs:
-  - create
-  - update
-  - delete
-  - get
-  - list
-  - watch
-  - patch' | oc create -f -
+oc create -f deploy/cluster/clusterrole.yaml
+oc create -f deploy/crds/services_v1alpha2_peakservice_crd.yaml
 ```
 
 Login again as a regular user, create a new project, and create the resources required for the operator:
 ```
 oc login -u user1 master.openshift.example.com
+oc new-project peak
 oc apply -f deploy
 ```
 Observe the operator pod deploying, and verify that it has started successfully
